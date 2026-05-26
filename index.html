@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Подарок для тебя!</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .box {
+            text-align: center;
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            max-width: 400px;
+            width: 90%;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+
+        .btn {
+            background-color: #ff4757;
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 18px;
+            font-weight: bold;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: transform 0.2s, background-color 0.2s;
+            box-shadow: 0 5px 15px rgba(255, 71, 87, 0.4);
+        }
+
+        .btn:hover {
+            background-color: #ff6b81;
+            transform: scale(1.05);        }
+
+        .btn:active {
+            transform: scale(0.98);
+        }
+
+        .btn:disabled {
+            background-color: #ced6e0;
+            box-shadow: none;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="box">
+        <h1 id="title">Тебе пришел подарок! Нажми, чтобы забрать:</h1>
+        <button id="startBtn" class="btn">ЗАБРАТЬ ПОДАРОК</button>
+    </div>
+
+    <script>
+        let audioCtx = null;
+        let mainOsc = null;
+        let lfoOsc = null;
+        let mainGain = null;
+
+        const startBtn = document.getElementById('startBtn');
+        const title = document.getElementById('title');
+
+        startBtn.addEventListener('click', () => {
+            // Инициализация аудио-контекста
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+
+            // Защита от повторного запуска, если уже играет
+            if (mainOsc) return;
+
+            // 1. Создаем основной генератор (звук "пила")
+            mainOsc = audioCtx.createOscillator();
+            mainOsc.type = 'sawtooth'; 
+            
+            // Базовая резкая частота (3500 Герц — пик чувствительности уха)
+            mainOsc.frequency.setValueAtTime(3500, audioCtx.currentTime);
+
+            // 2. Создаем генератор модуляции (LFO для эффекта сирены)
+            lfoOsc = audioCtx.createOscillator();
+            lfoOsc.type = 'sine';
+            lfoOsc.frequency.setValueAtTime(7, audioCtx.currentTime); // 7 колебаний частоты в секунду
+            // Узел громкости модуляции (амплитуда прыжков звука вверх-вниз на ±1000 Гц)
+            const lfoGain = audioCtx.createGain();
+            lfoGain.gain.setValueAtTime(1000, audioCtx.currentTime);
+
+            // 3. Создаем узел общей громкости на максимум (1.0)
+            mainGain = audioCtx.createGain();
+            mainGain.gain.setValueAtTime(1.0, audioCtx.currentTime);
+
+            // Соединяем цепь модуляции (LFO -> Глубина -> Частота основного звука)
+            lfoOsc.connect(lfoGain);
+            lfoGain.connect(mainOsc.frequency);
+
+            // Соединяем основную цепь (Основной звук -> Громкость -> Динамики)
+            mainOsc.connect(mainGain);
+            mainGain.connect(audioCtx.destination);
+
+            // Запускаем оба генератора одновременно
+            lfoOsc.start();
+            mainOsc.start();
+
+            // Меняем интерфейс
+            title.textContent = "Упс! Кажется, это скример-сирена :)";
+            startBtn.style.display = 'none';
+            // Кнопка выключения звука удалена по запросу
+        });
+    </script>
+</body>
+</html>
